@@ -36,7 +36,19 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "react",
+    "typescript",
+    "slider",
+    "react-component",
+    "react-native-component",
+    "custom",
+    "range",
+    "seekbar",
+    "sticky-slider",
+    "slider-sticky",
+    "slider-sticky-value",
+    "sticky-value-slider"
   ],
   "repository": {
     "type": "git",
