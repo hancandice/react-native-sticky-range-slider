@@ -146,7 +146,7 @@ const Slider: React.FC<SliderProps> = ({
         onShouldBlockNativeResponder: trueFunc,
 
         onMoveShouldSetPanResponder: (
-          evt: GestureResponderEvent,
+          _evt: GestureResponderEvent,
           gestureState: PanResponderGestureState
         ) => Math.abs(gestureState.dx) > 2 * Math.abs(gestureState.dy),
 
