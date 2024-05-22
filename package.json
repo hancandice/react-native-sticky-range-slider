@@ -1,5 +1,5 @@
 {
-  "name": "react-native-range-slider",
+  "name": "react-native-sticky-range-slider",
   "version": "0.1.0",
   "description": "React native range slider",
   "main": "lib/commonjs/index",
@@ -41,14 +41,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hancandice/react-native-range-slider.git"
+    "url": "git+https://github.com/hancandice/react-native-sticky-range-slider.git"
   },
   "author": "hancandice <jeeyoung.han82@gmail.com> (https://github.com/hancandice)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hancandice/react-native-range-slider/issues"
+    "url": "https://github.com/hancandice/react-native-sticky-range-slider/issues"
   },
-  "homepage": "https://github.com/hancandice/react-native-range-slider#readme",
+  "homepage": "https://github.com/hancandice/react-native-sticky-range-slider#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
