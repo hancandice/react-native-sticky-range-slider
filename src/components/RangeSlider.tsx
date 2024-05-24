@@ -44,6 +44,8 @@ export interface SliderProps extends ViewProps {
   renderLowValue?: (low: number) => ReactNode;
   renderHighValue?: (high: number) => ReactNode;
   pannableAreaStyle?: StyleProp<ViewStyle>;
+  disableRange?: boolean;
+  disabled?: boolean;
 }
 
 const Slider: React.FC<SliderProps> = ({
@@ -60,11 +62,13 @@ const Slider: React.FC<SliderProps> = ({
   renderLowValue = (low) => <TextValue value={low} />,
   renderHighValue = (high) => <TextValue value={high} />,
   pannableAreaStyle,
+  disableRange = false,
+  disabled = false,
   ...restProps
 }) => {
   const { inPropsRef, inPropsRefPrev, setLow, setHigh } = useLowHigh(
     lowProp,
-    highProp,
+    disableRange ? max : highProp,
     min,
     max,
     step
@@ -87,7 +91,8 @@ const Slider: React.FC<SliderProps> = ({
   const { selectedRailStyle, updateSelectedRail } = useSelectedRail(
     inPropsRef,
     containerWidthRef,
-    thumbWidth
+    thumbWidth,
+    disableRange
   );
 
   const updateThumbs = useCallback(() => {
@@ -97,16 +102,26 @@ const Slider: React.FC<SliderProps> = ({
     }
     const { low, high } = inPropsRef.current;
 
-    const highPosition =
-      ((high - min) / (max - min)) * (containerWidth - thumbWidth);
-    highThumbXRef.current.setValue(highPosition);
+    if (!disableRange) {
+      const highPosition =
+        ((high - min) / (max - min)) * (containerWidth - thumbWidth);
+      highThumbXRef.current.setValue(highPosition);
+    }
 
     const lowPosition =
       ((low - min) / (max - min)) * (containerWidth - thumbWidth);
     lowThumbXRef.current.setValue(lowPosition);
     updateSelectedRail();
     onValueChanged?.(low, high);
-  }, [inPropsRef, max, min, onValueChanged, thumbWidth, updateSelectedRail]);
+  }, [
+    disableRange,
+    inPropsRef,
+    max,
+    min,
+    onValueChanged,
+    thumbWidth,
+    updateSelectedRail,
+  ]);
 
   useEffect(() => {
     const { lowPrev, highPrev } = inPropsRefPrev;
@@ -140,11 +155,13 @@ const Slider: React.FC<SliderProps> = ({
   }, [lowThumbX]);
 
   const highStyles = useMemo(() => {
-    return [
-      styles.highThumbContainer,
-      { transform: [{ translateX: highThumbX }] },
-    ];
-  }, [highThumbX]);
+    return disableRange
+      ? null
+      : [
+          styles.highThumbContainer,
+          { transform: [{ translateX: highThumbX }] },
+        ];
+  }, [disableRange, highThumbX]);
 
   const railContainerStyles = useMemo(() => {
     return [styles.railsContainer, { marginHorizontal: thumbWidth / 2 }];
@@ -168,6 +185,9 @@ const Slider: React.FC<SliderProps> = ({
         ) => Math.abs(gestureState.dx) > 2 * Math.abs(gestureState.dy),
 
         onPanResponderGrant: ({ nativeEvent }, gestureState) => {
+          if (disabled) {
+            return;
+          }
           const { numberActiveTouches } = gestureState;
           if (numberActiveTouches > 1) {
             return;
@@ -188,7 +208,8 @@ const Slider: React.FC<SliderProps> = ({
               (inPropsRef.current.max - inPropsRef.current.min)) *
               (containerWidth - thumbWidth);
 
-          const isLow = isLowCloser(downX, lowPosition, highPosition);
+          const isLow =
+            disableRange || isLowCloser(downX, lowPosition, highPosition);
           gestureStateRef.current.isLow = isLow;
 
           const handlePositionChange = (positionInView: number) => {
@@ -240,11 +261,15 @@ const Slider: React.FC<SliderProps> = ({
           });
         },
 
-        onPanResponderMove: Animated.event([null, { moveX: pointerX }], {
-          useNativeDriver: false,
-        }),
+        onPanResponderMove: disabled
+          ? undefined
+          : Animated.event([null, { moveX: pointerX }], {
+              useNativeDriver: false,
+            }),
       }),
     [
+      disableRange,
+      disabled,
       inPropsRef,
       minRange,
       onValueChanged,
@@ -272,12 +297,14 @@ const Slider: React.FC<SliderProps> = ({
             </View>
             {lowThumb}
           </Animated.View>
-          <Animated.View style={highStyles}>
-            <View style={styles.value}>
-              {renderHighValue(inPropsRef.current.high)}
-            </View>
-            {highThumb}
-          </Animated.View>
+          {!disableRange && (
+            <Animated.View style={highStyles}>
+              <View style={styles.value}>
+                {renderHighValue(inPropsRef.current.high)}
+              </View>
+              {highThumb}
+            </Animated.View>
+          )}
         </View>
       </View>
       <View

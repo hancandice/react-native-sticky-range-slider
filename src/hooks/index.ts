@@ -1,6 +1,6 @@
-import { type MutableRefObject, useCallback, useMemo, useRef } from "react";
-import { Animated, type LayoutChangeEvent } from "react-native";
-import { clamp } from "../utils/helpers";
+import { useCallback, useMemo, useRef, type MutableRefObject } from 'react';
+import { Animated, type LayoutChangeEvent } from 'react-native';
+import { clamp } from '../utils/helpers';
 
 export const useLowHigh = (
   lowProp: number | undefined,
@@ -10,7 +10,8 @@ export const useLowHigh = (
   step: number
 ) => {
   const validLowProp = lowProp === undefined ? min : clamp(lowProp, min, max);
-  const validHighProp = highProp === undefined ? max : clamp(highProp, min, max);
+  const validHighProp =
+    highProp === undefined ? max : clamp(highProp, min, max);
   const inPropsRef = useRef({
     low: validLowProp,
     high: validHighProp,
@@ -63,7 +64,8 @@ interface InProps {
 export const useSelectedRail = (
   inPropsRef: MutableRefObject<InProps>,
   containerWidthRef: MutableRefObject<number>,
-  thumbWidth: number
+  thumbWidth: number,
+  disableRange: boolean
 ) => {
   const { current: left } = useRef(new Animated.Value(0));
   const { current: right } = useRef(new Animated.Value(0));
@@ -73,12 +75,14 @@ export const useSelectedRail = (
     const fullScale = (max - min) / (containerWidth - thumbWidth);
     const leftValue = (low - min) / fullScale;
     const rightValue = (max - high) / fullScale;
-    left.setValue(leftValue);
-    right.setValue(rightValue);
-  }, [containerWidthRef, inPropsRef, left, right, thumbWidth]);
+    left.setValue(disableRange ? 0 : leftValue);
+    right.setValue(
+      disableRange ? containerWidth - thumbWidth - leftValue : rightValue
+    );
+  }, [containerWidthRef, disableRange, inPropsRef, left, right, thumbWidth]);
   const selectedRailStyle = useMemo(
     () => ({
-      position: "absolute",
+      position: 'absolute',
       left,
       right,
     }),
