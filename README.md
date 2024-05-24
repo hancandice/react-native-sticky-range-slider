@@ -13,7 +13,7 @@ A pure TS component offering a customizable range slider optimized for performan
 ## Preview 🦋
 
 <p align="center">
-<img src="https://github.com/hancandice/react-native-sticky-range-slider/assets/64334381/a3217ea3-347d-4f80-8cb5-3c1b95cd63c5" width="369">
+<img src="https://github.com/hancandice/react-native-sticky-range-slider/assets/64334381/352d075d-22f2-41eb-a0da-84631ccea7c0" width="369">
 </p>
 
 
