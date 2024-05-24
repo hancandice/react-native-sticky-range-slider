@@ -1,23 +1,31 @@
-import React, { type ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   Animated,
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
   PanResponder,
-  type PanResponderGestureState,
-  type StyleProp,
   StyleSheet,
   View,
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+  type PanResponderGestureState,
+  type StyleProp,
   type ViewProps,
   type ViewStyle,
-} from "react-native";
+} from 'react-native';
 
-import Rail from "./Rail";
-import RailSelected from "./RailSelected";
-import TextValue from "./TextValue";
-import Thumb from "./Thumb";
-import { clamp, getValueForPosition, isLowCloser } from "../utils/helpers";
-import { useLowHigh, useSelectedRail, useWidthLayout } from "../hooks";
+import { useLowHigh, useSelectedRail, useWidthLayout } from '../hooks';
+import { clamp, getValueForPosition, isLowCloser } from '../utils/helpers';
+import Rail from './Rail';
+import RailSelected from './RailSelected';
+import TextValue from './TextValue';
+import Thumb from './Thumb';
 
 const trueFunc = () => true;
 const falseFunc = () => false;
@@ -30,7 +38,7 @@ export interface SliderProps extends ViewProps {
   low?: number;
   high?: number;
   onValueChanged?: (low: number, high: number) => void;
-  renderThumb?: () => ReactNode;
+  renderThumb?: (type: 'high' | 'low') => ReactNode;
   renderRail?: () => ReactNode;
   renderRailSelected?: () => ReactNode;
   renderLowValue?: (low: number) => ReactNode;
@@ -67,7 +75,11 @@ const Slider: React.FC<SliderProps> = ({
   const { current: lowThumbX } = lowThumbXRef;
   const { current: highThumbX } = highThumbXRef;
 
-  const gestureStateRef = useRef({ isLow: true, lastValue: 0, lastPosition: 0 });
+  const gestureStateRef = useRef({
+    isLow: true,
+    lastValue: 0,
+    lastPosition: 0,
+  });
 
   const containerWidthRef = useRef(0);
   const [thumbWidth, setThumbWidth] = useState(0);
@@ -85,10 +97,12 @@ const Slider: React.FC<SliderProps> = ({
     }
     const { low, high } = inPropsRef.current;
 
-    const highPosition = ((high - min) / (max - min)) * (containerWidth - thumbWidth);
+    const highPosition =
+      ((high - min) / (max - min)) * (containerWidth - thumbWidth);
     highThumbXRef.current.setValue(highPosition);
 
-    const lowPosition = ((low - min) / (max - min)) * (containerWidth - thumbWidth);
+    const lowPosition =
+      ((low - min) / (max - min)) * (containerWidth - thumbWidth);
     lowThumbXRef.current.setValue(lowPosition);
     updateSelectedRail();
     onValueChanged?.(low, high);
@@ -126,15 +140,18 @@ const Slider: React.FC<SliderProps> = ({
   }, [lowThumbX]);
 
   const highStyles = useMemo(() => {
-    return [styles.highThumbContainer, { transform: [{ translateX: highThumbX }] }];
+    return [
+      styles.highThumbContainer,
+      { transform: [{ translateX: highThumbX }] },
+    ];
   }, [highThumbX]);
 
   const railContainerStyles = useMemo(() => {
     return [styles.railsContainer, { marginHorizontal: thumbWidth / 2 }];
   }, [thumbWidth]);
 
-  const lowThumb = renderThumb();
-  const highThumb = renderThumb();
+  const lowThumb = renderThumb('low');
+  const highThumb = renderThumb('high');
 
   const { panHandlers } = useMemo(
     () =>
@@ -175,8 +192,12 @@ const Slider: React.FC<SliderProps> = ({
           gestureStateRef.current.isLow = isLow;
 
           const handlePositionChange = (positionInView: number) => {
-            const minValue = isLow ? inPropsRef.current.min : inPropsRef.current.low + minRange;
-            const maxValue = isLow ? inPropsRef.current.high - minRange : inPropsRef.current.max;
+            const minValue = isLow
+              ? inPropsRef.current.min
+              : inPropsRef.current.low + minRange;
+            const maxValue = isLow
+              ? inPropsRef.current.high - minRange
+              : inPropsRef.current.max;
             const value = clamp(
               getValueForPosition(
                 positionInView,
@@ -198,8 +219,11 @@ const Slider: React.FC<SliderProps> = ({
                 (inPropsRef.current.max - inPropsRef.current.min)) *
               availableSpace;
             gestureStateRef.current.lastValue = value;
-            gestureStateRef.current.lastPosition = absolutePosition + thumbWidth / 2;
-            (isLow ? lowThumbXRef.current : highThumbXRef.current).setValue(absolutePosition);
+            gestureStateRef.current.lastPosition =
+              absolutePosition + thumbWidth / 2;
+            (isLow ? lowThumbXRef.current : highThumbXRef.current).setValue(
+              absolutePosition
+            );
             onValueChanged?.(
               isLow ? value : inPropsRef.current.low,
               isLow ? inPropsRef.current.high : value
@@ -216,7 +240,9 @@ const Slider: React.FC<SliderProps> = ({
           });
         },
 
-        onPanResponderMove: Animated.event([null, { moveX: pointerX }], { useNativeDriver: false }),
+        onPanResponderMove: Animated.event([null, { moveX: pointerX }], {
+          useNativeDriver: false,
+        }),
       }),
     [
       inPropsRef,
@@ -236,14 +262,20 @@ const Slider: React.FC<SliderProps> = ({
         <View onLayout={handleContainerLayout} style={styles.controlsContainer}>
           <View style={railContainerStyles}>
             {renderRail()}
-            <Animated.View style={selectedRailStyle as any}>{renderRailSelected()}</Animated.View>
+            <Animated.View style={selectedRailStyle as any}>
+              {renderRailSelected()}
+            </Animated.View>
           </View>
           <Animated.View style={lowStyles} onLayout={handleThumbLayout}>
-            <View style={styles.value}>{renderLowValue(inPropsRef.current.low)}</View>
+            <View style={styles.value}>
+              {renderLowValue(inPropsRef.current.low)}
+            </View>
             {lowThumb}
           </Animated.View>
           <Animated.View style={highStyles}>
-            <View style={styles.value}>{renderHighValue(inPropsRef.current.high)}</View>
+            <View style={styles.value}>
+              {renderHighValue(inPropsRef.current.high)}
+            </View>
             {highThumb}
           </Animated.View>
         </View>
@@ -259,24 +291,24 @@ const Slider: React.FC<SliderProps> = ({
 
 const styles = StyleSheet.create({
   controlsContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
   },
   highThumbContainer: {
-    position: "absolute",
+    position: 'absolute',
   },
   railsContainer: {
     ...StyleSheet.absoluteFillObject,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   touchableArea: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.5,
   },
   value: {
-    position: "absolute",
+    position: 'absolute',
     top: -20,
     width: 40,
   },
