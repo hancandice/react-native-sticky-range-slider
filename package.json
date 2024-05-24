@@ -1,6 +1,6 @@
 {
   "name": "react-native-sticky-range-slider",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "[React Native | TypeScript] A pure TypeScript component offering a customizable range slider optimized for performance. It supports dragging functionalities for selecting a range of values, with values that smoothly follow the thumb. This component is fully compatible with both Android and iOS platforms.",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
