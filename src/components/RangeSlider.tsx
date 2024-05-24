@@ -51,7 +51,7 @@ export interface SliderProps extends ViewProps {
 const Slider: React.FC<SliderProps> = ({
   min,
   max,
-  minRange = 0,
+  minRange: minRangeProp = 0,
   step,
   low: lowProp,
   high: highProp,
@@ -66,6 +66,7 @@ const Slider: React.FC<SliderProps> = ({
   disabled = false,
   ...restProps
 }) => {
+  const minRange = disableRange ? 0 : minRangeProp;
   const { inPropsRef, inPropsRefPrev, setLow, setHigh } = useLowHigh(
     lowProp,
     disableRange ? max : highProp,
