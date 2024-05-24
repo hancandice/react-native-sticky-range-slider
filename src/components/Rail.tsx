@@ -1,6 +1,6 @@
-import React, { memo } from "react";
-import { StyleSheet, View } from "react-native";
-import { COLORS } from "../constants/colors";
+import React, { memo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 const Rail = () => <View style={styles.rail} />;
 
