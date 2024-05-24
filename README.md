@@ -36,27 +36,31 @@ import RangeSlider from "react-native-sticky-range-slider";
 const MIN_AGE = 18;
 const MAX_AGE = 60;
 
-const Thumb = () => <View style={styles.thumb} />;
+const Thumb = (type: "high" | "low") => (
+  <View
+    style={[styles.thumb, { backgroundColor: type === "high" ? "lime" : "purple" }]}
+  />
+);
 const Rail = () => <View style={styles.rail} />;
 const RailSelected = () => <View style={styles.railSelected} />;
 
 const App = () => {
   const [min, setMin] = useState(MIN_AGE);
   const [max, setMax] = useState(MAX_AGE);
+  const [disableRange, setDisableRange] = useState(false);
 
   const handleValueChange = useCallback((newLow: number, newHigh: number) => {
     setMin(newLow);
     setMax(newHigh);
   }, []);
 
-  const handleReset = () => {
-    setMin(MIN_AGE);
-    setMax(MAX_AGE);
+  const handleToggle = () => {
+    setDisableRange((prev) => !prev);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Select Age Range</Text>
+      <Text style={styles.title}>{disableRange ? "Set your age" : "Set Age Range"}</Text>
       <RangeSlider
         style={styles.slider}
         min={MIN_AGE}
@@ -73,8 +77,12 @@ const App = () => {
         renderThumb={Thumb}
         renderRail={Rail}
         renderRailSelected={RailSelected}
+        disableRange={disableRange}
       />
-      <Button onPress={handleReset} title="Reset" />
+      <Button
+        onPress={handleToggle}
+        title={disableRange ? "Switch to double control" : "Switch to single control"}
+      />
     </View>
   );
 };
