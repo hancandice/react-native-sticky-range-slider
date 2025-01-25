@@ -306,13 +306,13 @@ const Slider: React.FC<SliderProps> = ({
               {highThumb}
             </Animated.View>
           )}
+          <View
+            {...panHandlers}
+            style={[styles.touchableArea, pannableAreaStyle]}
+            collapsable={false}
+          />
         </View>
       </View>
-      <View
-        {...panHandlers}
-        style={[styles.touchableArea, pannableAreaStyle]}
-        collapsable={false}
-      />
     </>
   );
 };
@@ -332,8 +332,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   touchableArea: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: -20,
+    bottom: -20,
+    left: -20,
+    right: -20,
     opacity: 0.5,
+    zIndex: 1000,
   },
   value: {
     position: 'absolute',
