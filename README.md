@@ -1,163 +1,138 @@
-# React Native Sticky Range Slider 🌟
+# react-native-sticky-range-slider
 
-A pure TS component offering a customizable range slider optimized for performance. <br />It supports dragging functionalities for selecting a range of values, with values that **smoothly follow the thumb**.<br /> This component is fully compatible with both **Android** and **iOS** platforms. <br />Primarily forked from [rn-range-slider](https://www.npmjs.com/package/rn-range-slider).
+[![npm](https://img.shields.io/npm/v/react-native-sticky-range-slider)](https://www.npmjs.com/package/react-native-sticky-range-slider)
+[![license](https://img.shields.io/npm/l/react-native-sticky-range-slider)](./LICENSE)
+[![CI](https://github.com/hancandice/react-native-sticky-range-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/hancandice/react-native-sticky-range-slider/actions)
 
-## Features ✨
-* **Optimized Performance**:  Designed to ensure smooth and responsive interactions even with complex UI components.
-* **Full Customization**: Highly customizable to fit your application's specific requirements.
-* **Cross-Platform Compatibility**: Works seamlessly on both Android and iOS platforms.
-* **Responsive**: Provides a responsive user experience, adapting to various screen sizes and orientations.
-* **Programmatic Control**: Offers methods to programmatically control the slider behavior.
-
-
-## Preview 🦋
+A two-thumb range slider whose value labels ride on the thumbs. 60 fps on the UI thread, accessible, RTL-ready.
 
 <p align="center">
-<img src="https://github.com/hancandice/react-native-sticky-range-slider/assets/64334381/352d075d-22f2-41eb-a0da-84631ccea7c0" width="369">
+  <img src="https://raw.githubusercontent.com/hancandice/react-native-sticky-range-slider/v1.0.0/docs/hero.gif" width="360" alt="Dragging both thumbs of a price filter until the labels merge, tapping the rail to seek and dragging a single-thumb rating slider" />
 </p>
 
+```tsx
+<RangeSlider min={0} max={500} step={10} low={low} high={high}
+  onValueChange={(l, h) => { setLow(l); setHigh(h); }} />
+```
 
-## Installation 📦
+- Labels follow the thumbs and merge when they meet
+- Range or single thumb, `step` (decimals without float noise) or continuous, `minRange`, tap to seek
+- VoiceOver / TalkBack adjustable thumbs, 44 pt touch target, RTL, dark mode
+- Works inside `<Modal>` on Android, New Architecture, Expo, Reanimated 3 & 4
+
+## Install
 
 ```sh
-npm install react-native-sticky-range-slider
+npx expo install react-native-sticky-range-slider react-native-reanimated react-native-gesture-handler
 ```
+
+Bare React Native:
+
 ```sh
-yarn add react-native-sticky-range-slider
+npm install react-native-sticky-range-slider react-native-reanimated react-native-gesture-handler
 ```
 
-## Usage 🚀
+Then follow the [Reanimated](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/)
+(Reanimated 4 also needs `react-native-worklets`) and
+[Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation)
+setup. Wrapping your app in `GestureHandlerRootView` is recommended; the slider also renders one
+internally, which is what makes it work inside a React Native `<Modal>` on Android (on Android this
+logs a harmless "already enabled" note when an outer root view exists).
 
-```jsx
-import React, { useCallback, useState } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
-import RangeSlider from "react-native-sticky-range-slider";
+| Peer | Range | Verified |
+| --- | --- | --- |
+| `react-native` | ≥ 0.76 | 0.88 (New Architecture) on Android 14 and iOS 26, Expo SDK 58 |
+| `react-native-reanimated` | ≥ 3.16 < 5 | 4.7 on device; 3.16 type-checked (`yarn typecheck:min`) |
+| `react-native-gesture-handler` | ≥ 2.20 < 4 | 3.3 on device; 2.20 type-checked |
+| `react` | ≥ 18.2 | 19.3 on device; 18 type-checked |
 
-const MIN_AGE = 18;
-const MAX_AGE = 60;
+## Props
 
-const Thumb = (type: "high" | "low") => (
-  <View
-    style={[styles.thumb, { backgroundColor: type === "high" ? "lime" : "purple" }]}
-  />
-);
-const Rail = () => <View style={styles.rail} />;
-const RailSelected = () => <View style={styles.railSelected} />;
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `min` / `max` | `number` | **required** | Range. `max < min` is treated as `max = min`. |
+| `step` | `number` | `1` | Distance between values; `0` = continuous. `max` is always reachable, even when `max - min` is not a multiple of `step`. |
+| `minRange` | `number` | `0` | Minimum distance between the thumbs. The limits stay on the step grid. |
+| `low` / `high` | `number` | `min` / `max` | Values. When provided the slider follows them; they are clamped, ordered and snapped to the step grid. Leave them out for an uncontrolled slider. |
+| `onValueChange` | `(low, high) => void` | – | Every user change (drag, tap, accessibility action) — once per step, or on every frame of a drag when `step` is `0`. Not called when you change `low`/`high`. |
+| `onSlidingStart` | `(thumb: 'low' \| 'high') => void` | – | A drag starts. |
+| `onSlidingComplete` | `(low, high) => void` | – | The finger is released (also after a tap or accessibility action). |
+| `disableRange` | `boolean` | `false` | Single thumb (`low`). |
+| `disabled` | `boolean` | `false` | Ignore user interaction and render at 38 % opacity. |
+| `inverted` | `boolean` | `I18nManager.isRTL` | `min` on the right. |
+| `labelPosition` | `'top' \| 'none'` | `'top'` | `top` reserves room above the rail for the labels, so they never overlap the content above. |
+| `formatLabel` | `(value) => string` | `String` (2 decimals when `step` is 0) | Text of the default labels. Labels re-render only when this text changes. |
+| `thumbColor` | `string` | `#FFFFFF` | Default thumb fill (28 pt, hairline border, soft shadow). |
+| `railColor` | `string` | `#C7C7CC` (dark: `#48484A`) | Default rail. |
+| `selectedRailColor` | `string` | `#007AFF` (dark: `#0A84FF`) | Default selected rail. |
+| `labelStyle` | `TextStyle` | 13 pt, semibold, tabular numbers | Style of the default labels. |
+| `renderThumb` | `(type, { pressed, disabled }) => ReactNode` | white dot | Custom thumb (both thumbs should have the same size). |
+| `renderRail` / `renderRailSelected` | `() => ReactNode` | 4 pt lines | Custom rails (the full rail should stretch: `flex: 1`). |
+| `renderLowValue` / `renderHighValue` | `(value) => ReactNode` | label | Custom labels. Return `null` to hide one. |
+| `hitSlop` | `number \| Insets` | `{ top: 8, bottom: 8, left: 12, right: 12 }` | Extra touch area around the slider (which is at least 44 pt tall). |
+| `accessibilityLabel` | `string` | – | Prefix of the thumb labels, e.g. `"Price, Minimum"`. |
+| `thumbAccessibilityLabel` | `(type) => string` | `'Minimum'` / `'Maximum'` / `'Value'` | Full screen-reader label of a thumb (overrides the prefix). |
+| `formatAccessibilityValue` | `(value) => string` | `formatLabel` | Screen-reader value text. |
+| `...ViewProps` | | | `style`, `testID`, … for the container. |
+| `onValueChanged` | | | **Deprecated** alias of `onValueChange`. |
+| `pannableAreaStyle` | | | **Deprecated**, ignored — use `hitSlop`. |
 
-const App = () => {
-  const [min, setMin] = useState(MIN_AGE);
-  const [max, setMax] = useState(MAX_AGE);
-  const [disableRange, setDisableRange] = useState(false);
+Drags follow the finger 1:1; taps and accessibility actions animate the thumb (150 ms), the pressed
+thumb grows to 1.15×, and all motion honours the system **Reduce Motion** setting.
 
-  const handleValueChange = useCallback((newLow: number, newHigh: number) => {
-    setMin(newLow);
-    setMax(newHigh);
-  }, []);
+## Recipes
 
-  const handleToggle = () => {
-    setDisableRange((prev) => !prev);
-  };
+**Price filter with currency labels**
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{disableRange ? "Set your age" : "Set Age Range"}</Text>
-      <RangeSlider
-        style={styles.slider}
-        min={MIN_AGE}
-        max={MAX_AGE}
-        step={1}
-        minRange={5}
-        low={min}
-        high={max}
-        onValueChanged={handleValueChange}
-        renderLowValue={(value) => <Text style={styles.valueText}>{value}</Text>}
-        renderHighValue={(value) => (
-          <Text style={styles.valueText}>{value === MAX_AGE ? `+${value}` : value}</Text>
-        )}
-        renderThumb={Thumb}
-        renderRail={Rail}
-        renderRailSelected={RailSelected}
-        disableRange={disableRange}
-      />
-      <Button
-        onPress={handleToggle}
-        title={disableRange ? "Switch to double control" : "Switch to single control"}
-      />
-    </View>
-  );
-};
-
-const THUMB_RADIUS = 10;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  slider: {
-    marginVertical: 20,
-  },
-  valueText: {
-    color: "black",
-  },
-  thumb: {
-    width: THUMB_RADIUS * 2,
-    height: THUMB_RADIUS * 2,
-    borderRadius: THUMB_RADIUS,
-    borderWidth: 3,
-    borderColor: "black",
-    backgroundColor: "red",
-  },
-  rail: {
-    flex: 1,
-    height: 3,
-    borderRadius: 3,
-    backgroundColor: "grey",
-  },
-  railSelected: {
-    height: 3,
-    backgroundColor: "red",
-  },
-});
-
-export default App;
+```tsx
+<RangeSlider
+  min={0} max={1000} step={10} minRange={50}
+  low={price.low} high={price.high}
+  formatLabel={(v) => '$' + v}
+  onValueChange={(low, high) => setPrice({ low, high })}
+  onSlidingComplete={(low, high) => refetch(low, high)}
+  accessibilityLabel="Price"
+/>
 ```
 
-### Props 🎨
+**Custom colours / dark mode**
 
-| Name                 | Description                                                                                                                                                                                                                                                                                          | Type                                                   |                   Default Value                   |
-|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|:-------------------------------------------------:|
-| `min`                | Minimum value for the slider.                                                                                                                                                                                                                                                   | `number`                                              |                  _**required**_                   |
-| `max`                | Maximum value for the slider.                                                                                                                                                                                                                                | `number`                                              |                  _**required**_                   |
-| `minRange`                | Minimum range between the low and high values. <br /> It is set to `0` if **disableRange** is `true`.                                                                                                                                  | `number`                                              |                  _**0**_                   |
-| `step`                | Step value for the slider.                                                                                                                                                                                                              | `number`                                              |                  _**required**_                   |
-| `low`                | Low value for the slider.                                                                                                                                                                                                  | `number`                                              |                  _**required**_                   |
-| `high`                | High value for the slider.                                                                                                                                                                              | `number`                                                   |                 _**required**_                  |
-| `onValueChanged`                | Callback function that gets called when the slider values change. Receives the new low and high values as arguments.                                                                                                                                               | `(low: number, high: number) => void`                                                   |                 _**required**_                  |
-| `renderThumb`                | 	Function to render the thumb component. Accepts a type parameter which can be either high or low.                                                                                                                         | `(type: 'high' or 'low') => React.ReactNode`                                                 |                 _**Default Thumb**_                  |
-| `renderRail`                | 	Function to render the rail component.                                                                                                       | `() => React.ReactNode`                                                   |                 _**Default Rail**_                  |
-| `renderRailSelected`                | 	Function to render the selected rail component.                                                                                                       | `() => React.ReactNode`                                                   |                 _**Default RailSelected**_                  |
-| `renderLowValue`                | 	Function to render the component displaying the low value. Receives the low value as an argument.                                                                                 | `(low: number) => React.ReactNode`                                                   |                 _**Default LowValueText**_                  |
-| `renderHighValue`                | 	Function to render the component displaying the high value. Receives the high value as an argument.                                                        | `(high: number) => React.ReactNode`                                                   |                 _**Default HighValueText**_                  |
-| `pannableAreaStyle`                | 	Style for the pannable area.                                                                        | `StyleProp<ViewStyle>`                                                   |                 _**Default Pannable Area Style**_                  |
-| `disableRange`                | 	When set to `true`, the slider functions as a standard slider with a single control.                                                                       | `boolean`                                                   |                 _**false**_                  |
-| `disabled`                | 	User interactions will be ignored when set to `true`.                                           | `boolean`                                                   |                 _**false**_                  |
+```tsx
+<RangeSlider min={18} max={65} thumbColor="#FF2D55" selectedRailColor="#FF2D55"
+  railColor={dark ? '#3A3A3C' : '#F2D7DE'} labelStyle={{ color: '#FF2D55' }} />
+```
 
+**Single continuous slider**: `<RangeSlider min={0} max={1} step={0} disableRange onValueChange={(v) => setVolume(v)} />`
 
+## Migrating from 0.x
 
-## Contributions 🤝
-Contributions are welcome! If you have any suggestions, feature requests, or bug reports, feel free to open an issue or submit a pull request. Let's make this component even better together! 😃
+1.0 is a rewrite on Gesture Handler and Reanimated (0.x used `PanResponder` and `Animated` on the JS thread).
+
+1. Install the new peer dependencies `react-native-reanimated` and `react-native-gesture-handler`.
+2. `onValueChanged` → `onValueChange` (the old name still works with a one-time warning in development).
+   It is no longer called on mount, on layout or when you change `low`/`high` yourself — only for user
+   changes. Use `onSlidingComplete` for “change end” work.
+3. New look: 28 pt white thumbs, 4 pt rails, labels above the thumbs in reserved space (the slider is
+   taller than before), at least 44 pt touch height. Your `render*` props keep working; `renderThumb`
+   now also receives `{ pressed, disabled }`.
+4. `step` is optional (default `1`); `0` makes the slider continuous. Initial values are snapped to the grid.
+5. `pannableAreaStyle` is ignored: the whole slider is touchable; use `hitSlop` to enlarge it.
+6. Fixed: dragging inside a React Native `<Modal>` on Android / Expo SDK 53+
+   ([#1](https://github.com/hancandice/react-native-sticky-range-slider/issues/1)), overlapping thumbs,
+   float noise with decimal steps, and the missing `main` entry in `package.json`.
+
+## Example app
+
+```sh
+yarn
+yarn example start   # press a / i, or open it in Expo Go (SDK 58)
+```
+
+*Showcase* is a filters card (default and custom-coloured sliders, light and dark mode);
+*Edge cases* has the 0.x README demo inside a React Native `<Modal>` (issue #1), RTL, disabled state,
+continuous and decimal steps, merging labels and degenerate ranges. Screenshots from emulator runs
+are in [`docs/screenshots`](./docs/screenshots).
 
 ## License
 
-MIT
-
----
-
-Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
+MIT · Originally forked from [rn-range-slider](https://www.npmjs.com/package/rn-range-slider).
