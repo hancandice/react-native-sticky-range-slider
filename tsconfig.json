@@ -2,15 +2,22 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "react-native-sticky-range-slider": ["./src/index"]
+      "react-native-sticky-range-slider": [
+        "./src/index"
+      ]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    "customConditions": ["source", "react-native-strict-api"],
+    "customConditions": [
+      "source",
+      "react-native-strict-api"
+    ],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
@@ -23,7 +30,13 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "types": ["jest"],
+    "types": [
+      "jest"
+    ],
     "verbatimModuleSyntax": true
-  }
+  },
+  "exclude": [
+    "typecheck-min",
+    "lib"
+  ]
 }

@@ -27,6 +27,9 @@ jobs:
       - name: Typecheck files
         run: yarn typecheck
 
+      - name: Typecheck against the oldest supported peers
+        run: yarn typecheck:min
+
   test:
     runs-on: ubuntu-latest
     steps:
