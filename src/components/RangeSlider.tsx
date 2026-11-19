@@ -307,7 +307,6 @@ const RangeSlider = ({
   const [thumbWidth, setThumbWidth] = useState(0);
   const [thumbHeight, setThumbHeight] = useState(0);
   const [labelHeight, setLabelHeight] = useState(0);
-  const thumbWidthRef = useRef(0);
 
   // latest callbacks, without re-creating the gestures on every render
   const callbacks = useRef({
@@ -679,25 +678,26 @@ const RangeSlider = ({
 
   const handleContainerLayout = useCallback(
     ({ nativeEvent }: LayoutChangeEvent) => {
-      const { width } = nativeEvent.layout;
-      containerSize.value = width;
-      trackLength.value = Math.max(0, width - thumbWidthRef.current);
-      setContainerWidth(width);
+      setContainerWidth(nativeEvent.layout.width);
     },
-    [containerSize, trackLength]
+    []
   );
 
   const handleThumbLayout = useCallback(
     ({ nativeEvent }: LayoutChangeEvent) => {
-      const { width, height } = nativeEvent.layout;
-      thumbWidthRef.current = width;
-      thumbSize.value = width;
-      trackLength.value = Math.max(0, containerSize.value - width);
-      setThumbWidth(width);
-      setThumbHeight(height);
+      setThumbWidth(nativeEvent.layout.width);
+      setThumbHeight(nativeEvent.layout.height);
     },
-    [containerSize, thumbSize, trackLength]
+    []
   );
+
+  // Update the UI-thread layout after React committed the new layout, so that
+  // the commit cannot overwrite the freshly positioned thumbs.
+  useLayoutEffect(() => {
+    containerSize.value = containerWidth;
+    thumbSize.value = thumbWidth;
+    trackLength.value = Math.max(0, containerWidth - thumbWidth);
+  }, [containerSize, containerWidth, thumbSize, thumbWidth, trackLength]);
 
   const measureLabel = useCallback(
     (target: SharedValue<number>) =>
