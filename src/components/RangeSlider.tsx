@@ -206,6 +206,7 @@ const RangeSlider = ({
 
   const [containerWidth, setContainerWidth] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(0);
+  const [thumbHeight, setThumbHeight] = useState(0);
 
   // latest callbacks without re-creating the gestures on every render
   const callbacks = useRef({
@@ -215,9 +216,14 @@ const RangeSlider = ({
   });
   callbacks.current = { onValueChanged, onSlidingStart, onSlidingComplete };
 
+  // Props that change while the user drags are applied once the drag ends.
+  const pendingSync = useRef(false);
+  const [syncTick, setSyncTick] = useState(0);
+
   // Sync with props (controlled) or re-validate internal state (uncontrolled).
   useEffect(() => {
     if (active.value !== 0) {
+      pendingSync.current = true;
       return;
     }
     const next = normalizeValues(
@@ -231,7 +237,7 @@ const RangeSlider = ({
     setDisplay((prev) =>
       prev.low === next.low && prev.high === next.high ? prev : next
     );
-  }, [active, config, disableRange, high, highProp, low, lowProp]);
+  }, [active, config, disableRange, high, highProp, low, lowProp, syncTick]);
 
   useEffect(() => {
     trackLength.value = Math.max(0, containerWidth - thumbWidth);
@@ -249,7 +255,19 @@ const RangeSlider = ({
 
   const handleComplete = useCallback((l: number, h: number) => {
     callbacks.current.onSlidingComplete?.(l, h);
+    if (pendingSync.current) {
+      pendingSync.current = false;
+      setSyncTick((t) => t + 1);
+    }
   }, []);
+
+  const slop = toHitSlop(hitSlop);
+  const {
+    top: slopTop,
+    bottom: slopBottom,
+    left: slopLeft,
+    right: slopRight,
+  } = slop;
 
   const gesture = useMemo(() => {
     /** Logical position (0 = min side) of a thumb's start edge under touch x. */
@@ -316,7 +334,12 @@ const RangeSlider = ({
       .enabled(!disabled)
       .activeOffsetX([-6, 6])
       .failOffsetY([-12, 12])
-      .hitSlop(toHitSlop(hitSlop))
+      .hitSlop({
+        top: slopTop,
+        bottom: slopBottom,
+        left: slopLeft,
+        right: slopRight,
+      })
       .onStart((e) => {
         'worklet';
         const startX = e.x - e.translationX;
@@ -352,7 +375,12 @@ const RangeSlider = ({
     const tap = Gesture.Tap()
       .enabled(!disabled)
       .maxDistance(8)
-      .hitSlop(toHitSlop(hitSlop))
+      .hitSlop({
+        top: slopTop,
+        bottom: slopBottom,
+        left: slopLeft,
+        right: slopRight,
+      })
       .onEnd((e, success) => {
         'worklet';
         if (!success) {
@@ -382,7 +410,10 @@ const RangeSlider = ({
     handleComplete,
     handleStart,
     high,
-    hitSlop,
+    slopBottom,
+    slopLeft,
+    slopRight,
+    slopTop,
     inverted,
     low,
     thumbSize,
@@ -435,6 +466,7 @@ const RangeSlider = ({
   const handleThumbLayout = useCallback(
     ({ nativeEvent }: LayoutChangeEvent) => {
       setThumbWidth(nativeEvent.layout.width);
+      setThumbHeight(nativeEvent.layout.height);
     },
     []
   );
@@ -503,12 +535,11 @@ const RangeSlider = ({
       accessibilityRole: 'adjustable' as const,
       accessibilityLabel:
         thumbAccessibilityLabel?.(type) ?? defaultLabel(type, disableRange),
-      accessibilityValue: {
-        min: lo,
-        max: hi,
-        now: value,
-        text: format(value),
-      },
+      // min/max/now must be integers on Android; otherwise only the text is set
+      accessibilityValue:
+        Number.isInteger(lo) && Number.isInteger(hi) && Number.isInteger(value)
+          ? { min: lo, max: hi, now: value, text: format(value) }
+          : { text: format(value) },
       accessibilityState: { disabled },
       accessibilityActions: [
         { name: 'increment' as const },
@@ -526,7 +557,10 @@ const RangeSlider = ({
       <GestureDetector gesture={gesture}>
         <View
           onLayout={handleContainerLayout}
-          style={styles.controls}
+          style={[
+            styles.controls,
+            { height: Math.max(MIN_TOUCH_SIZE, thumbHeight) },
+          ]}
           collapsable={false}
         >
           <View
@@ -543,23 +577,26 @@ const RangeSlider = ({
           </View>
           <Animated.View
             {...thumbA11y('low')}
-            style={lowStyle}
-            onLayout={handleThumbLayout}
+            style={[styles.thumbSlot, lowStyle]}
           >
-            <View pointerEvents="none" style={styles.value}>
-              {renderLowValue(display.low)}
+            <View onLayout={handleThumbLayout}>
+              <View pointerEvents="none" style={styles.value}>
+                {renderLowValue(display.low)}
+              </View>
+              {renderThumb('low')}
             </View>
-            {renderThumb('low')}
           </Animated.View>
           {!disableRange && (
             <Animated.View
               {...thumbA11y('high')}
-              style={[styles.highThumb, highStyle]}
+              style={[styles.thumbSlot, highStyle]}
             >
-              <View pointerEvents="none" style={styles.value}>
-                {renderHighValue(display.high)}
+              <View>
+                <View pointerEvents="none" style={styles.value}>
+                  {renderHighValue(display.high)}
+                </View>
+                {renderThumb('high')}
               </View>
-              {renderThumb('high')}
             </Animated.View>
           )}
         </View>
@@ -580,10 +617,6 @@ const styles = StyleSheet.create({
   controls: {
     // positions are computed manually and mirrored for RTL
     direction: 'ltr',
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    minHeight: MIN_TOUCH_SIZE,
   },
   rails: {
     position: 'absolute',
@@ -598,9 +631,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
   },
-  highThumb: {
+  thumbSlot: {
     position: 'absolute',
     left: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   value: {
     position: 'absolute',
