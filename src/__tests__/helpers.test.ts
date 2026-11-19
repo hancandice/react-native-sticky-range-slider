@@ -1,5 +1,11 @@
 import {
   accessibilityStep,
+  cleanValue,
+  defaultFormat,
+  gridCeil,
+  gridFloor,
+  labelLeft,
+  labelsCollide,
   clamp,
   decimalsOf,
   limitsFor,
@@ -157,5 +163,50 @@ describe('accessibilityStep', () => {
     expect(accessibilityStep(cfg(0, 10, 2))).toBe(2);
     expect(accessibilityStep(cfg(0, 200, 0))).toBe(2);
     expect(accessibilityStep(cfg(5, 5, 0))).toBe(0);
+  });
+});
+
+describe('review regressions', () => {
+  it('does not round continuous sliders (step 0)', () => {
+    const c = cfg(0, 1, 0);
+    expect(cleanValue(0.1234567, c)).toBe(0.1234567);
+    expect(cleanValue(0.1 + 0.2, c)).toBe(0.3);
+    expect(positionToValue(33, 100, c)).toBe(0.33);
+    expect(accessibilityStep(c)).toBe(0.01);
+    expect(cleanValue(0.5 + accessibilityStep(c), c)).toBe(0.51);
+  });
+  it('never goes past a decimal max (max 10.5, step 1)', () => {
+    const c = cfg(0, 10.5, 1);
+    expect(c.decimals).toBe(1);
+    expect(snapToStep(10.4, c)).toBe(10.5);
+    expect(snapToStep(10.2, c)).toBe(10);
+    expect(snapToStep(11, c)).toBe(10.5);
+    expect(positionToValue(1000, 100, c)).toBe(10.5);
+  });
+  it('keeps minRange limits on the grid', () => {
+    const c = cfg(0, 100, 10, 15);
+    expect(limitsFor('low', 0, 50, c, false)).toEqual([0, 30]);
+    expect(limitsFor('high', 20, 100, c, false)).toEqual([40, 100]);
+    expect(gridFloor(35, c)).toBe(30);
+    expect(gridCeil(35, c)).toBe(40);
+    expect(gridCeil(99, c)).toBe(100);
+  });
+  it('snaps initial / controlled values to the grid', () => {
+    const c = cfg(0, 100, 10, 15);
+    expect(normalizeValues(12, 33, c, false)).toEqual({ low: 10, high: 30 });
+    expect(normalizeValues(50, 52, c, false)).toEqual({ low: 50, high: 70 });
+  });
+  it('formats continuous values with 2 decimals at most', () => {
+    expect(defaultFormat(0.123456, cfg(0, 1, 0))).toBe('0.12');
+    expect(defaultFormat(3, cfg(0, 10, 1))).toBe('3');
+  });
+  it('keeps labels inside the slider and detects collisions', () => {
+    expect(labelLeft(5, 30, 300)).toBe(0);
+    expect(labelLeft(298, 30, 300)).toBe(270);
+    expect(labelLeft(150, 30, 300)).toBe(135);
+    expect(labelsCollide(100, 30, 200, 30, 300, 4)).toBe(false);
+    expect(labelsCollide(100, 30, 130, 30, 300, 4)).toBe(true);
+    // both pinned at the end of the slider
+    expect(labelsCollide(295, 30, 300, 30, 300, 4)).toBe(true);
   });
 });

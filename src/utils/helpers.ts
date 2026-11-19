@@ -53,7 +53,12 @@ export function normalizeConfig(
   const minRange = clamp(finite(minRangeProp, 0), 0, range);
   const decimals = Math.min(
     12,
-    Math.max(decimalsOf(step), decimalsOf(min), decimalsOf(minRange))
+    Math.max(
+      decimalsOf(step),
+      decimalsOf(min),
+      decimalsOf(max),
+      decimalsOf(minRange)
+    )
   );
   return { min, max, step, minRange, decimals };
 }
@@ -63,6 +68,43 @@ export function roundTo(value: number, decimals: number): number {
   'worklet';
   const factor = Math.pow(10, decimals);
   return Math.round(value * factor) / factor;
+}
+
+/**
+ * Removes floating point noise without snapping: stepped sliders round to the
+ * decimals of their props, continuous sliders (`step = 0`) keep 12
+ * significant digits.
+ */
+export function cleanValue(value: number, config: RangeConfig): number {
+  'worklet';
+  const cleaned =
+    config.step > 0
+      ? roundTo(value, config.decimals)
+      : Number(value.toPrecision(12));
+  return clamp(cleaned, config.min, config.max);
+}
+
+/** Largest value on the step grid that is <= value (max counts as on the grid). */
+export function gridFloor(value: number, config: RangeConfig): number {
+  'worklet';
+  const { min, max, step } = config;
+  if (step <= 0 || value >= max) {
+    return cleanValue(value, config);
+  }
+  const n = Math.floor((value - min) / step + 1e-9);
+  return cleanValue(min + n * step, config);
+}
+
+/** Smallest value on the step grid that is >= value (max counts as on the grid). */
+export function gridCeil(value: number, config: RangeConfig): number {
+  'worklet';
+  const { min, max, step } = config;
+  if (step <= 0) {
+    return cleanValue(value, config);
+  }
+  const n = Math.ceil((value - min) / step - 1e-9);
+  const v = min + n * step;
+  return v > max ? max : cleanValue(v, config);
 }
 
 /**
@@ -81,11 +123,11 @@ export function snapToStep(value: number, config: RangeConfig): number {
   // between the last grid value and max: snap to the closer of the two
   if (clamped > lastOnGrid) {
     return clamped - lastOnGrid < max - clamped
-      ? roundTo(lastOnGrid, decimals)
+      ? clamp(roundTo(lastOnGrid, decimals), min, max)
       : max;
   }
   const steps = Math.round((clamped - min) / step);
-  return roundTo(clamp(min + steps * step, min, max), decimals);
+  return clamp(roundTo(min + steps * step, decimals), min, max);
 }
 
 /** Thumb position for a value. */
@@ -130,9 +172,13 @@ export function limitsFor(
   if (disableRange) {
     return [min, max];
   }
+  if (minRange <= 0) {
+    return type === 'low' ? [min, high] : [low, max];
+  }
+  // keep the limits on the step grid so that both thumbs stay on it
   return type === 'low'
-    ? [min, Math.max(min, high - minRange)]
-    : [Math.min(max, low + minRange), max];
+    ? [min, Math.max(min, gridFloor(high - minRange, config))]
+    : [Math.min(max, gridCeil(low + minRange, config)), max];
 }
 
 /**
@@ -177,8 +223,8 @@ export function normalizeValues(
   disableRange: boolean
 ): { low: number; high: number } {
   const { min, max, minRange } = config;
-  let low = clamp(finite(lowProp, min), min, max);
-  let high = disableRange ? max : clamp(finite(highProp, max), min, max);
+  let low = snapToStep(finite(lowProp, min), config);
+  let high = disableRange ? max : snapToStep(finite(highProp, max), config);
   if (disableRange) {
     return { low, high };
   }
@@ -188,8 +234,10 @@ export function normalizeValues(
     high = t;
   }
   if (high - low < minRange) {
-    high = Math.min(max, low + minRange);
-    low = Math.max(min, high - minRange);
+    high = Math.min(max, gridCeil(low + minRange, config));
+    if (high - low < minRange) {
+      low = Math.max(min, gridFloor(high - minRange, config));
+    }
   }
   return { low, high };
 }
@@ -201,4 +249,47 @@ export function accessibilityStep(config: RangeConfig): number {
   }
   const range = config.max - config.min;
   return range > 0 ? range / 100 : 0;
+}
+
+/** Default label text: the value, with 2 decimals at most for continuous sliders. */
+export function defaultFormat(value: number, config: RangeConfig): string {
+  if (config.step > 0) {
+    return String(value);
+  }
+  return String(Number(value.toFixed(2)));
+}
+
+/**
+ * Left edge of a label of `width` centred on `center`, kept inside
+ * `[0, containerWidth]`.
+ */
+export function labelLeft(
+  center: number,
+  width: number,
+  containerWidth: number
+): number {
+  'worklet';
+  if (width >= containerWidth) {
+    return (containerWidth - width) / 2;
+  }
+  return clamp(center - width / 2, 0, containerWidth - width);
+}
+
+/** Whether two labels centred on the thumbs would touch (with `gap` between them). */
+export function labelsCollide(
+  lowCenter: number,
+  lowWidth: number,
+  highCenter: number,
+  highWidth: number,
+  containerWidth: number,
+  gap: number
+): boolean {
+  'worklet';
+  const lowLeft = labelLeft(lowCenter, lowWidth, containerWidth);
+  const highLeft = labelLeft(highCenter, highWidth, containerWidth);
+  const [a, aw, b] =
+    lowLeft <= highLeft
+      ? [lowLeft, lowWidth, highLeft]
+      : [highLeft, highWidth, lowLeft];
+  return a + aw + gap > b;
 }
